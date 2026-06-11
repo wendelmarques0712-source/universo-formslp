@@ -50,7 +50,7 @@
     color: #151F6D;
     transition: all 0.3s ease;
     box-sizing: border-box;
-    appearance: none; /* Remove estilo padrão do navegador */
+    appearance: none;
   }
 
   .form-input::placeholder, .form-select:invalid {
@@ -224,10 +224,10 @@
 </div>
 
 <script>
-  // Máscara de Telefone (WhatsApp)
+  // Máscara de Telefone (WhatsApp) corrigida com as barras invertidas
   const phoneInput = document.getElementById('whatsapp');
   phoneInput.addEventListener('input', function(e) {
-    let x = e.target.value.replace(/D/g, '').match(/(d{0,2})(d{0,5})(d{0,4})/);
+    let x = e.target.value.replace(/\D/g, '').match(/(\d{0,2})(\d{0,5})(\d{0,4})/);
     e.target.value = !x[2] ? x[1] : '(' + x[1] + ') ' + x[2] + (x[3] ? '-' + x[3] : '');
   });
 
@@ -274,8 +274,7 @@
   document.getElementById('multi-step-form').addEventListener('submit', function(e) {
     e.preventDefault(); // Impede o recarregamento da página
     
-    // Aqui você pode disparar a ação desejada. Como padrão, deixei redirecionando 
-    // para o WhatsApp com uma mensagem pré-preenchida com os dados da pessoa.
+    // Redireciona para o WhatsApp com os dados
     const nome = document.getElementById('nome').value;
     const negocio = document.getElementById('negocio').value;
     
