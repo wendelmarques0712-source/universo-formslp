@@ -92,6 +92,14 @@
     transform: translateY(-2px);
     box-shadow: 0 8px 20px rgba(241, 196, 0, 0.4);
   }
+  
+  .btn-submit:disabled {
+    background-color: #d1d8e0;
+    color: #8A94A6;
+    cursor: not-allowed;
+    box-shadow: none;
+    transform: none;
+  }
 
   .btn-back {
     display: block;
@@ -158,38 +166,24 @@
 
   <form id="multi-step-form">
     
-    <!-- CAMPOS INVISÍVEIS PARA CAPTURAR UTMs E PARÂMETROS -->
-    <input type="hidden" id="utm_source" name="utm_source" value="">
-    <input type="hidden" id="utm_medium" name="utm_medium" value="">
-    <input type="hidden" id="utm_campaign" name="utm_campaign" value="">
-    <input type="hidden" id="utm_content" name="utm_content" value="">
-    <input type="hidden" id="utm_term" name="utm_term" value="">
-    <input type="hidden" id="fbclid" name="fbclid" value="">
-    <input type="hidden" id="gclid" name="gclid" value="">
-    <input type="hidden" id="cidado" name="cidado" value="">
-    <input type="hidden" id="estado" name="estado" value="">
-    <input type="hidden" id="regiao" name="regiao" value="">
-
-    <!-- PASSO 1 -->
     <div class="form-step active" id="step-1">
       <div class="form-group">
         <label class="form-label" for="nome">Nome</label>
-        <input type="text" id="nome" name="nome" class="form-input" placeholder="Seu nome" required>
+        <input type="text" id="nome" class="form-input" placeholder="Seu nome" required>
       </div>
       
       <div class="form-group">
         <label class="form-label" for="whatsapp">WhatsApp</label>
-        <input type="tel" id="whatsapp" name="whatsapp" class="form-input" placeholder="(98) 9 0000-0000" required minlength="14">
+        <input type="tel" id="whatsapp" class="form-input" placeholder="(98) 9 0000-0000" required minlength="14">
       </div>
       
       <button type="button" class="btn-submit" onclick="nextStep(1)">Avançar</button>
     </div>
 
-    <!-- PASSO 2 -->
     <div class="form-step" id="step-2">
       <div class="form-group">
         <label class="form-label" for="negocio">Qual é o seu tipo de negócio?</label>
-        <select id="negocio" name="negocio" class="form-select" required>
+        <select id="negocio" class="form-select" required>
           <option value="" disabled selected>Selecione uma opção</option>
           <option value="Oficina mecânica">Oficina mecânica</option>
           <option value="Revendedor / Auto peças">Revendedor / Auto peças</option>
@@ -201,7 +195,7 @@
 
       <div class="form-group">
         <label class="form-label" for="pedidos">Quantos pedidos você faz por mês?</label>
-        <select id="pedidos" name="pedidos" class="form-select" required>
+        <select id="pedidos" class="form-select" required>
           <option value="" disabled selected>Selecione uma opção</option>
           <option value="Até 20 pedidos">Até 20 pedidos</option>
           <option value="De 20 a 50 pedidos">De 20 a 50 pedidos</option>
@@ -214,11 +208,10 @@
       <button type="button" class="btn-back" onclick="prevStep(2)">Voltar para etapa anterior</button>
     </div>
 
-    <!-- PASSO 3 -->
     <div class="form-step" id="step-3">
       <div class="form-group">
         <label class="form-label" for="falta">O que mais falta no seu fornecedor atual?</label>
-        <select id="falta" name="falta" class="form-select" required>
+        <select id="falta" class="form-select" required>
           <option value="" disabled selected>Selecione uma opção</option>
           <option value="Entrega rápida">Entrega rápida</option>
           <option value="Estoque garantido">Estoque garantido</option>
@@ -227,7 +220,7 @@
         </select>
       </div>
 
-      <button type="submit" class="btn-submit">Quero o catálogo técnico</button>
+      <button type="submit" class="btn-submit" id="btn-finalizar">Quero o catálogo técnico</button>
       <button type="button" class="btn-back" onclick="prevStep(3)">Voltar para etapa anterior</button>
     </div>
 
@@ -239,78 +232,87 @@
 </div>
 
 <script>
-  // ============================================
-  // 1. CAPTURAR PARÂMETROS UTM E OUTROS DA URL
-  // ============================================
-  function captureURLParameters() {
-    const params = new URLSearchParams(window.location.search);
-    
-    // Capturar UTMs
-    document.getElementById('utm_source').value = params.get('utm_source') || '';
-    document.getElementById('utm_medium').value = params.get('utm_medium') || '';
-    document.getElementById('utm_campaign').value = params.get('utm_campaign') || '';
-    document.getElementById('utm_content').value = params.get('utm_content') || '';
-    document.getElementById('utm_term').value = params.get('utm_term') || '';
-    
-    // Capturar outros parâmetros
-    document.getElementById('fbclid').value = params.get('fbclid') || '';
-    document.getElementById('gclid').value = params.get('gclid') || '';
-    document.getElementById('cidado').value = params.get('cidado') || '';
-    document.getElementById('estado').value = params.get('estado') || '';
-    document.getElementById('regiao').value = params.get('regiao') || '';
+  // ==========================================
+  // FUNÇÕES DE TRACKING E IDENTIFICAÇÃO (Estilo OFOS)
+  // ==========================================
+  
+  // user_id persistente (identifica o navegador entre sessões)
+  function getUserId() {
+    var key = 'universo_user_id';
+    var id = localStorage.getItem(key);
+    if (!id) {
+      id = 'u_' + Date.now() + '_' + Math.random().toString(36).substring(2, 10);
+      localStorage.setItem(key, id);
+    }
+    return id;
   }
 
-  // Chamar a função ao carregar a página
-  window.addEventListener('DOMContentLoaded', captureURLParameters);
+  // Captura todos os parâmetros de tracking da URL
+  function capturarTracking() {
+    const p = new URLSearchParams(window.location.search);
+    return {
+      utm_source:   p.get('utm_source')   || '',
+      utm_medium:   p.get('utm_medium')   || '',
+      utm_campaign: p.get('utm_campaign') || '',
+      utm_content:  p.get('utm_content')  || '',
+      utm_term:     p.get('utm_term')     || '',
+      gclid:        p.get('gclid')        || '',
+      fbclid:       p.get('fbclid')       || '',
+      cidade:       p.get('cidade')       || '',
+      estado:       p.get('estado')       || '',
+      regiao:       p.get('regiao')       || '',
+      page_url:     window.location.href  || '',
+      user_agent:   navigator.userAgent   || '',
+      user_id:      getUserId()
+    };
+  }
 
-  // ============================================
-  // 2. MÁSCARA DE TELEFONE (WhatsApp)
-  // ============================================
+  // ==========================================
+  // LÓGICA DE INTERFACE DO FORMULÁRIO UNIVERSO
+  // ==========================================
+
+  // Máscara de Telefone (WhatsApp)
   const phoneInput = document.getElementById('whatsapp');
   phoneInput.addEventListener('input', function(e) {
     let x = e.target.value.replace(/\D/g, '').match(/(\d{0,2})(\d{0,5})(\d{0,4})/);
     e.target.value = !x[2] ? x[1] : '(' + x[1] + ') ' + x[2] + (x[3] ? '-' + x[3] : '');
   });
 
-  // ============================================
-  // 3. NAVEGAÇÃO ENTRE PASSOS COM VALIDAÇÃO
-  // ============================================
+  // Navegação entre os passos com trava de validação rigorosa
   function nextStep(currentStepIndex) {
     const currentStepDiv = document.getElementById(`step-${currentStepIndex}`);
     const inputs = currentStepDiv.querySelectorAll('input, select');
     let isValid = true;
 
-    // Valida os campos do passo atual
+    // Percorre os campos do passo atual e trava no primeiro que estiver inválido ou vazio
     for (let i = 0; i < inputs.length; i++) {
       let input = inputs[i];
       
       if (!input.checkValidity() || input.value.trim() === "") {
         isValid = false;
-        input.style.border = "1px solid #d60000";
-        input.reportValidity();
-        break;
+        input.style.border = "1px solid #d60000"; // Pinta a borda de vermelho
+        input.reportValidity(); // Mostra o aviso nativo do navegador
+        break; // Interrompe o loop para focar no erro
       } else {
-        input.style.border = "1px solid transparent";
+        input.style.border = "1px solid transparent"; // Remove o erro se estiver ok
       }
     }
 
-    // Avança para o próximo passo se tudo for válido
+    // Só avança se a variável isValid continuar true
     if (isValid) {
       document.getElementById(`step-${currentStepIndex}`).classList.remove('active');
       document.getElementById(`step-${currentStepIndex + 1}`).classList.add('active');
-      updateDots(currentStepIndex);
+      updateDots(currentStepIndex); // Atualiza os pontinhos
     }
   }
 
   function prevStep(currentStepIndex) {
     document.getElementById(`step-${currentStepIndex}`).classList.remove('active');
     document.getElementById(`step-${currentStepIndex - 1}`).classList.add('active');
-    updateDots(currentStepIndex - 2);
+    updateDots(currentStepIndex - 2); // Atualiza os pontinhos
   }
 
-  // ============================================
-  // 4. ATUALIZAR INDICADORES (PONTINHOS)
-  // ============================================
+  // Atualiza os indicadores (pontinhos) do topo
   function updateDots(activeIndex) {
     const dots = document.querySelectorAll('.dot');
     dots.forEach((dot, index) => {
@@ -322,98 +324,81 @@
     });
   }
 
-  // ============================================
-  // 5. VALIDAR TODOS OS CAMPOS DO FORMULÁRIO
-  // ============================================
-  function validateAllSteps() {
-    const form = document.getElementById('multi-step-form');
-    const inputs = form.querySelectorAll('input[type="text"], input[type="tel"], select');
-    let isValid = true;
+  // ==========================================
+  // ENVIO VIA WEBHOOK E REDIRECIONAMENTO WHATSAPP
+  // ==========================================
+  
+  document.getElementById('multi-step-form').addEventListener('submit', function(e) {
+    e.preventDefault(); // Impede o recarregamento da página (só dispara no botão tipo submit da última etapa)
+    
+    // Altera o estado do botão para evitar envios duplicados
+    const btnSubmit = document.getElementById('btn-finalizar');
+    const textoOriginalBtn = btnSubmit.textContent;
+    btnSubmit.disabled = true;
+    btnSubmit.textContent = 'Enviando...';
 
-    inputs.forEach(input => {
-      if (input.type !== 'hidden' && (!input.checkValidity() || input.value.trim() === "")) {
-        isValid = false;
-        input.style.border = "1px solid #d60000";
-      } else {
-        input.style.border = "1px solid transparent";
-      }
+    // Captura os dados preenchidos visíveis
+    const nome = document.getElementById('nome').value;
+    const whatsapp = document.getElementById('whatsapp').value;
+    const negocio = document.getElementById('negocio').value;
+    const pedidos = document.getElementById('pedidos').value;
+    const falta = document.getElementById('falta').value;
+    
+    // Captura os dados ocultos (Tracking/UTMs)
+    const tracking = capturarTracking();
+
+    // Monta o Payload completo
+    const dadosCompletos = {
+      nome: nome,
+      whatsapp: whatsapp,
+      negocio: negocio,
+      pedidos: pedidos,
+      falta: falta,
+      dataEnvio: new Date().toLocaleString('pt-BR'),
+      timestamp: new Date().toISOString(),
+      utm_source: tracking.utm_source,
+      utm_medium: tracking.utm_medium,
+      utm_campaign: tracking.utm_campaign,
+      utm_content: tracking.utm_content,
+      utm_term: tracking.utm_term,
+      gclid: tracking.gclid,
+      fbclid: tracking.fbclid,
+      cidade: tracking.cidade,
+      estado: tracking.estado,
+      regiao: tracking.regiao,
+      page_url: tracking.page_url,
+      user_agent: tracking.user_agent,
+      user_id: tracking.user_id
+    };
+
+    // Envia os dados para o Webhook Celonis/Make
+    fetch('https://hook.us1.make.celonis.com/8ys6r6jx8rpfewiwnuo0fbfzvrpwcqyd', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(dadosCompletos)
+    })
+    .then(response => {
+      console.log('Webhook disparado com sucesso:', response.status);
+      redirecionarParaWhatsApp(nome, negocio);
+    })
+    .catch(error => {
+      console.error('Erro ao enviar para o Webhook:', error);
+      // Redireciona mesmo em caso de erro para não prejudicar a jornada do usuário
+      redirecionarParaWhatsApp(nome, negocio);
+    })
+    .finally(() => {
+      // Restaura o botão caso o usuário feche a nova aba e volte para a página
+      btnSubmit.disabled = false;
+      btnSubmit.textContent = textoOriginalBtn;
     });
-
-    return isValid;
-  }
-
-  // ============================================
-  // 6. COLETAR TODOS OS DADOS DO FORMULÁRIO
-  // ============================================
-  function collectFormData() {
-    const form = document.getElementById('multi-step-form');
-    const formData = new FormData(form);
-    const data = {};
-
-    formData.forEach((value, key) => {
-      data[key] = value;
-    });
-
-    return data;
-  }
-
-  // ============================================
-  // 7. ENVIAR DADOS PARA O WEBHOOK
-  // ============================================
-  async function sendToWebhook(data) {
-    const webhookURL = 'https://hook.us1.make.celonis.com/8ys6r6jx8rpfewiwnuo0fbfzvrpwcqyd';
-
-    try {
-      const response = await fetch(webhookURL, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(data)
-      });
-
-      if (response.ok) {
-        console.log('✅ Dados enviados com sucesso para o webhook!');
-        return true;
-      } else {
-        console.error('❌ Erro ao enviar dados:', response.status);
-        return false;
-      }
-    } catch (error) {
-      console.error('❌ Erro na requisição:', error);
-      return false;
-    }
-  }
-
-  // ============================================
-  // 8. AÇÃO AO FINALIZAR O FORMULÁRIO (SUBMIT)
-  // ============================================
-  document.getElementById('multi-step-form').addEventListener('submit', async function(e) {
-    e.preventDefault();
-
-    // Validar todos os campos do formulário
-    if (!validateAllSteps()) {
-      alert('Por favor, preencha todos os campos corretamente.');
-      return;
-    }
-
-    // Coletar todos os dados
-    const formData = collectFormData();
-
-    // Enviar para o webhook
-    const webhookSuccess = await sendToWebhook(formData);
-
-    if (webhookSuccess) {
-      // Se o webhook foi enviado com sucesso, redirecionar para WhatsApp
-      const nome = document.getElementById('nome').value;
-      const negocio = document.getElementById('negocio').value;
-      
-      const texto = `Olá! Meu nome é ${nome}. Tenho um(a) ${negocio} e gostaria de receber o catálogo técnico.`;
-      const linkWa = `https://api.whatsapp.com/send/?phone=559822220088&text=${encodeURIComponent(texto)}`;
-      
-      window.open(linkWa, '_blank');
-    } else {
-      alert('Ocorreu um erro ao processar sua solicitação. Tente novamente.');
-    }
   });
+
+  // Função isolada para o redirecionamento
+  function redirecionarParaWhatsApp(nome, negocio) {
+    const texto = `Olá! Meu nome é ${nome}. Tenho um(a) ${negocio} e gostaria de receber o catálogo técnico.`;
+    const linkWa = `https://api.whatsapp.com/send/?phone=559822220088&text=${encodeURIComponent(texto)}`;
+    window.open(linkWa, '_blank');
+  }
 </script>
