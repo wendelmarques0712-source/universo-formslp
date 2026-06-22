@@ -63,7 +63,6 @@
     outline: none;
   }
 
-  /* Seta customizada para o Select */
   .form-select {
     background-image: url("data:image/svg+xml,%3Csvg width='12' height='8' viewBox='0 0 12 8' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1.5 1.5L6 6L10.5 1.5' stroke='%23151F6D' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
     background-repeat: no-repeat;
@@ -72,7 +71,6 @@
     cursor: pointer;
   }
 
-  /* Botões */
   .btn-submit {
     width: 100%;
     background-color: #F1C400;
@@ -91,14 +89,6 @@
   .btn-submit:hover {
     transform: translateY(-2px);
     box-shadow: 0 8px 20px rgba(241, 196, 0, 0.4);
-  }
-  
-  .btn-submit:disabled {
-    background-color: #d1d8e0;
-    color: #8A94A6;
-    cursor: not-allowed;
-    box-shadow: none;
-    transform: none;
   }
 
   .btn-back {
@@ -134,14 +124,14 @@
   .whatsapp-link:hover {
     color: #F1C400;
   }
-  
-  /* Indicador de passos */
+
   .step-indicator {
     display: flex;
     justify-content: center;
     gap: 8px;
     margin-bottom: 24px;
   }
+
   .dot {
     width: 8px;
     height: 8px;
@@ -149,6 +139,7 @@
     border-radius: 50%;
     transition: 0.3s;
   }
+
   .dot.active {
     background-color: #151F6D;
     width: 24px;
@@ -157,7 +148,7 @@
 </style>
 
 <div class="form-container">
-  
+
   <div class="step-indicator" id="step-dots">
     <div class="dot active"></div>
     <div class="dot"></div>
@@ -165,18 +156,18 @@
   </div>
 
   <form id="multi-step-form">
-    
+
     <div class="form-step active" id="step-1">
       <div class="form-group">
         <label class="form-label" for="nome">Nome</label>
         <input type="text" id="nome" class="form-input" placeholder="Seu nome" required>
       </div>
-      
+
       <div class="form-group">
         <label class="form-label" for="whatsapp">WhatsApp</label>
         <input type="tel" id="whatsapp" class="form-input" placeholder="(98) 9 0000-0000" required minlength="14">
       </div>
-      
+
       <button type="button" class="btn-submit" onclick="nextStep(1)">Avançar</button>
     </div>
 
@@ -221,32 +212,18 @@
         </select>
       </div>
 
-      <button type="submit" class="btn-submit" id="btn-finalizar">Quero o catálogo técnico</button>
+      <button type="submit" class="btn-submit">Quero o catálogo técnico</button>
       <button type="button" class="btn-back" onclick="prevStep(3)">Voltar para etapa anterior</button>
     </div>
 
   </form>
+
 </div>
 
 <script>
-  // ==========================================
-  // FUNÇÕES DE TRACKING E IDENTIFICAÇÃO (Estilo OFOS)
-  // ==========================================
-  
-  // user_id persistente (identifica o navegador entre sessões)
-  function getUserId() {
-    var key = 'universo_user_id';
-    var id = localStorage.getItem(key);
-    if (!id) {
-      id = 'u_' + Date.now() + '_' + Math.random().toString(36).substring(2, 10);
-      localStorage.setItem(key, id);
-    }
-    return id;
-  }
-
-  // Captura todos os parâmetros de tracking da URL
-  function capturarTracking() {
-    const p = new URLSearchParams(window.location.search);
+  // Lê todos os params de tracking injetados pelo embed da LP
+  var _tracking = (function () {
+    var p = new URLSearchParams(window.location.search);
     return {
       utm_source:   p.get('utm_source')   || '',
       utm_medium:   p.get('utm_medium')   || '',
@@ -255,147 +232,118 @@
       utm_term:     p.get('utm_term')     || '',
       gclid:        p.get('gclid')        || '',
       fbclid:       p.get('fbclid')       || '',
-      cidade:       p.get('cidade')       || '',
-      estado:       p.get('estado')       || '',
-      regiao:       p.get('regiao')       || '',
-      page_url:     window.location.href  || '',
-      user_agent:   navigator.userAgent   || '',
-      user_id:      getUserId()
+      fbp:          p.get('fbp')          || '',
+      fbc:          p.get('fbc')          || '',
+      event_id:     p.get('event_id')     || '',
+      page_url:     p.get('page_url')     || document.referrer || '',
+      user_agent:   p.get('user_agent')   || navigator.userAgent || ''
     };
-  }
+  })();
 
-  // ==========================================
-  // LÓGICA DE INTERFACE DO FORMULÁRIO UNIVERSO
-  // ==========================================
-
-  // Máscara de Telefone (WhatsApp)
+  // Máscara de Telefone
   const phoneInput = document.getElementById('whatsapp');
-  phoneInput.addEventListener('input', function(e) {
+  phoneInput.addEventListener('input', function (e) {
     let x = e.target.value.replace(/\D/g, '').match(/(\d{0,2})(\d{0,5})(\d{0,4})/);
     e.target.value = !x[2] ? x[1] : '(' + x[1] + ') ' + x[2] + (x[3] ? '-' + x[3] : '');
   });
 
-  // Navegação entre os passos com trava de validação rigorosa
   function nextStep(currentStepIndex) {
     const currentStepDiv = document.getElementById(`step-${currentStepIndex}`);
     const inputs = currentStepDiv.querySelectorAll('input, select');
     let isValid = true;
 
-    // Percorre os campos do passo atual e trava no primeiro que estiver inválido ou vazio
     for (let i = 0; i < inputs.length; i++) {
       let input = inputs[i];
-      
-      if (!input.checkValidity() || input.value.trim() === "") {
+      if (!input.checkValidity() || input.value.trim() === '') {
         isValid = false;
-        input.style.border = "1px solid #d60000"; // Pinta a borda de vermelho
-        input.reportValidity(); // Mostra o aviso nativo do navegador
-        break; // Interrompe o loop para focar no erro
+        input.style.border = '1px solid #d60000';
+        input.reportValidity();
+        break;
       } else {
-        input.style.border = "1px solid transparent"; // Remove o erro se estiver ok
+        input.style.border = '1px solid transparent';
       }
     }
 
-    // Só avança se a variável isValid continuar true
     if (isValid) {
       document.getElementById(`step-${currentStepIndex}`).classList.remove('active');
       document.getElementById(`step-${currentStepIndex + 1}`).classList.add('active');
-      updateDots(currentStepIndex); // Atualiza os pontinhos
+      updateDots(currentStepIndex);
     }
   }
 
   function prevStep(currentStepIndex) {
     document.getElementById(`step-${currentStepIndex}`).classList.remove('active');
     document.getElementById(`step-${currentStepIndex - 1}`).classList.add('active');
-    updateDots(currentStepIndex - 2); // Atualiza os pontinhos
+    updateDots(currentStepIndex - 2);
   }
 
-  // Atualiza os indicadores (pontinhos) do topo
   function updateDots(activeIndex) {
     const dots = document.querySelectorAll('.dot');
     dots.forEach((dot, index) => {
-      if(index === activeIndex) {
-        dot.classList.add('active');
-      } else {
-        dot.classList.remove('active');
-      }
+      dot.classList.toggle('active', index === activeIndex);
     });
   }
 
-  // ==========================================
-  // ENVIO VIA WEBHOOK E REDIRECIONAMENTO WHATSAPP
-  // ==========================================
-  
-  document.getElementById('multi-step-form').addEventListener('submit', function(e) {
-    e.preventDefault(); // Impede o recarregamento da página (só dispara no botão tipo submit da última etapa)
-    
-    // Altera o estado do botão para evitar envios duplicados
-    const btnSubmit = document.getElementById('btn-finalizar');
-    const textoOriginalBtn = btnSubmit.textContent;
-    btnSubmit.disabled = true;
-    btnSubmit.textContent = 'Enviando...';
+  document.getElementById('multi-step-form').addEventListener('submit', function (e) {
+    e.preventDefault();
 
-    // Captura os dados preenchidos visíveis
-    const nome = document.getElementById('nome').value;
-    const whatsapp = document.getElementById('whatsapp').value;
+    const nome    = document.getElementById('nome').value;
     const negocio = document.getElementById('negocio').value;
     const pedidos = document.getElementById('pedidos').value;
-    const falta = document.getElementById('falta').value;
-    
-    // Captura os dados ocultos (Tracking/UTMs)
-    const tracking = capturarTracking();
+    const falta   = document.getElementById('falta').value;
 
-    // Monta o Payload completo
-    const dadosCompletos = {
-      nome: nome,
-      whatsapp: whatsapp,
-      negocio: negocio,
-      pedidos: pedidos,
-      falta: falta,
-      dataEnvio: new Date().toLocaleString('pt-BR'),
-      timestamp: new Date().toISOString(),
-      utm_source: tracking.utm_source,
-      utm_medium: tracking.utm_medium,
-      utm_campaign: tracking.utm_campaign,
-      utm_content: tracking.utm_content,
-      utm_term: tracking.utm_term,
-      gclid: tracking.gclid,
-      fbclid: tracking.fbclid,
-      cidade: tracking.cidade,
-      estado: tracking.estado,
-      regiao: tracking.regiao,
-      page_url: tracking.page_url,
-      user_agent: tracking.user_agent,
-      user_id: tracking.user_id
+    const payload = {
+      nome:         nome,
+      whatsapp:     document.getElementById('whatsapp').value,
+      negocio:      negocio,
+      pedidos:      pedidos,
+      falta:        falta,
+      dataEnvio:    new Date().toLocaleString('pt-BR'),
+      timestamp:    new Date().toISOString(),
+      utm_source:   _tracking.utm_source,
+      utm_medium:   _tracking.utm_medium,
+      utm_campaign: _tracking.utm_campaign,
+      utm_content:  _tracking.utm_content,
+      utm_term:     _tracking.utm_term,
+      gclid:        _tracking.gclid,
+      fbclid:       _tracking.fbclid,
+      fbp:          _tracking.fbp,
+      fbc:          _tracking.fbc,
+      event_id:     _tracking.event_id,
+      page_url:     _tracking.page_url,
+      user_agent:   _tracking.user_agent
     };
 
-    // Envia os dados para o Webhook Celonis/Make
-    fetch('https://hook.us1.make.celonis.com/8ys6r6jx8rpfewiwnuo0fbfzvrpwcqyd', {
+    // Envia pro Make via proxy serverless (webhook nunca exposto no cliente)
+    fetch('/api/submit', {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify(dadosCompletos)
-    })
-    .then(response => {
-      console.log('Webhook disparado com sucesso:', response.status);
-      redirecionarParaWhatsApp(nome, negocio);
-    })
-    .catch(error => {
-      console.error('Erro ao enviar para o Webhook:', error);
-      // Redireciona mesmo em caso de erro para não prejudicar a jornada do usuário
-      redirecionarParaWhatsApp(nome, negocio);
-    })
-    .finally(() => {
-      // Restaura o botão caso o usuário feche a nova aba e volte para a página
-      btnSubmit.disabled = false;
-      btnSubmit.textContent = textoOriginalBtn;
-    });
-  });
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    }).catch(function () {}); // falha silenciosa — não trava o fluxo do usuário
 
-  // Função isolada para o redirecionamento
-  function redirecionarParaWhatsApp(nome, negocio) {
+    // Notifica o GTM da LP pai via postMessage
+    window.parent.postMessage({
+      event:        'universo_lead_submitted',
+      event_id:     _tracking.event_id,
+      utm_source:   _tracking.utm_source,
+      utm_medium:   _tracking.utm_medium,
+      utm_campaign: _tracking.utm_campaign,
+      utm_content:  _tracking.utm_content,
+      utm_term:     _tracking.utm_term,
+      gclid:        _tracking.gclid,
+      fbclid:       _tracking.fbclid,
+      fbp:          _tracking.fbp,
+      fbc:          _tracking.fbc,
+      page_url:     _tracking.page_url,
+      nome:         nome,
+      negocio:      negocio,
+      pedidos:      pedidos,
+      falta:        falta
+    }, '*');
+
+    // Abre o WhatsApp
     const texto = `Olá! Meu nome é ${nome}. Tenho um(a) ${negocio} e gostaria de receber o catálogo técnico.`;
     const linkWa = `https://api.whatsapp.com/send/?phone=559822220088&text=${encodeURIComponent(texto)}`;
     window.open(linkWa, '_blank');
-  }
+  });
 </script>
